@@ -1,0 +1,9 @@
+server:
+   port: 7002
+spring:
+   application:
+      name: clientserver
+   cloud:
+      zookeeper:
+         connect-string: 192.168.3.186:2181,192.168.3.187:2181,192.168.3.188:2181
+
