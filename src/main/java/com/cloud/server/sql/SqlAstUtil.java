@@ -1,10 +1,7 @@
 package com.cloud.server.sql;
 
 import com.alibaba.fastjson.JSON;
-import com.cloud.server.sql.bean.ColumnsInfo;
-import com.cloud.server.sql.bean.TableInfo;
-import com.cloud.server.sql.bean.WhereColumnsInfo;
-import com.cloud.server.sql.bean.WhereInfo;
+import com.cloud.server.sql.bean.*;
 import com.cloud.server.sql.enums.ExpSqlRuleEnum;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -30,6 +27,8 @@ public class SqlAstUtil {
     private static final String REG_SQL_VAL_C = "(?<=\\s(%s\\s(>|<|<>|=|!=|like|in|not in|not like)'))[\\s\\S]*?(?=('|$))";
     private static final String REG_SQL_VAL_D = "(?<=(%s\\s(>|<|<>|=|!=|like|in|not in|not like)'))[\\s\\S]*?(?=('|$))";
 
+    private static final String REG_SQL_TABLE_RELATION = "(?<=\\s(%s))[\\s\\S]*?(?=(%s))";
+
     /**
      * @Author: chenyaohua
      * @Date: 2021/12/17
@@ -42,6 +41,31 @@ public class SqlAstUtil {
         List<TableInfo> resB = getTableNameCore(regexB,sql);
         resA.addAll(resB);
         return resA;
+    }
+
+    /**
+     * @Author: chenyaohua
+     * @Date: 2021/12/17
+     * @Description: 获取表关联方式
+     */
+    public static List<TabRelaInfo> getTabRelation(String sql){
+        List<TableInfo> tables = getTableName(sql);
+
+        List<TabRelaInfo> res = new ArrayList<>(16);
+
+        for (int i = 0; i < tables.size()-1; i++) {
+            Pattern pattern = Pattern.compile(String.format(REG_SQL_TABLE_RELATION,tables.get(i).getName()+" "+tables.get(i).getAlias(),
+                    tables.get(i+1).getName()));
+            Matcher matcher = pattern.matcher(sql);
+            while (matcher.find()) {
+                TabRelaInfo tabRelaInfo = new TabRelaInfo();
+                tabRelaInfo.setTableLeft(tables.get(i).getName());
+                tabRelaInfo.setTableRight(tables.get(i+1).getName());
+                tabRelaInfo.setTableRelaOpretor(matcher.group().trim());
+                res.add(tabRelaInfo);
+            }
+        }
+        return res;
     }
 
     /**
@@ -211,6 +235,9 @@ public class SqlAstUtil {
 
         List<WhereInfo> whereInfo = SqlAstUtil.getWhereColumns(sql);
         System.out.println(JSON.toJSON(whereInfo));
+
+        List<TabRelaInfo> tabRelaInfos = SqlAstUtil.getTabRelation(sql);
+        System.out.println(JSON.toJSON(tabRelaInfos));
 
 
     }
